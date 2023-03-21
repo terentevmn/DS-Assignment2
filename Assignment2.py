@@ -87,7 +87,7 @@ def str_stemmer(s):
 def str_common_word(str1, str2):
 	return sum(int(str2.find(word)>=0) for word in str1.split())
 
-def script():
+def original_script():
     # Reading the data
     df_train = pd.read_csv('home-depot-product-search-relevance/train.csv', encoding="ISO-8859-1")
     df_test = pd.read_csv('home-depot-product-search-relevance/test.csv', encoding="ISO-8859-1")
@@ -165,7 +165,7 @@ def script():
 def main():
     #df_attributes,_,_,_,df_train = read_CSV()
     #data_exploration(df_attributes, df_train)
-    script()
+    original_script()
     
 
 if __name__ == "__main__":
