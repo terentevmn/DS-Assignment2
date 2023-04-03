@@ -17,7 +17,7 @@ def read_CSV():
         enc = chardet.detect(f.read()) 
     
     df_test = pd.read_csv(data_path + "test.csv", encoding = enc['encoding'])
-    df_train = pd.read_csv(data_path + "test.csv", encoding = enc['encoding'])
+    df_train = pd.read_csv(data_path + "train.csv", encoding = enc['encoding'])
     
     return df_attributes, df_product_descriptions, df_sample_submission, df_test, df_train
 
@@ -41,23 +41,23 @@ def data_exploration(df_attributes, df_train):
     print(df_count.iloc[3][0], ":", df_count.iloc[3][1], " occurrences")
     print("-----------------------------------------------------------------------------------------")
     
+    
     #4. Give the descriptive statistics for the relevance values (mean, median, standard deviation) in the training data.
     print("The descriptive statistics for the relevance values (mean, median, standard deviation) in the training data:")
-    print("Mean:", df_count['count'].mean())
-    print("Median:", df_count['count'].median())
-    print("Standard deviation:", df_count['count'].std())
+    print("Mean:", df_train['relevance'].mean())
+    print("Median:", df_train['relevance'].median())
+    print("Standard deviation:", df_train['relevance'].std())
     print("-----------------------------------------------------------------------------------------")
 
     #5. Show a histogram or boxplot of the distribution of relevance values in the training data.
-    df_count.plot.hist(column = 'count', color = 'blue')
-    plt.xlabel('Number of occurrences of a product')
+    df_train.hist(column = 'relevance', color = 'blue')
+    plt.xlabel('Relevance score')
     plt.ylabel('Frequency')
     plt.title('Histogram of the distribution of relevance values in the training data')
     plt.show()
     
     # Maybe add a density plot
-    
-    df_count.boxplot(column = 'count', color = 'blue')
+    df_train.boxplot(column = 'relevance', color = 'blue')
     plt.title('Boxplot of the distribution of relevance values in the training data')
     plt.show()
     
@@ -77,7 +77,7 @@ def data_exploration(df_attributes, df_train):
 
 # Stemming maps different forms of the same word to a common “stem” - for example, 
 # the English stemmer maps connection, connections, connective, connected, and connecting to connect. 
-# So a searching for connected would also find documents which only have the other forms.
+# So a searching for connected would also find documents which also have the other forms.
 stemmer = SnowballStemmer('english')
 # For a provided string, returns a new string with the words replaced by their roots in English, e.g.
 # programmer -> program 
@@ -163,9 +163,9 @@ def original_script():
 
 
 def main():
-    #df_attributes,_,_,_,df_train = read_CSV()
-    #data_exploration(df_attributes, df_train)
-    original_script()
+    df_attributes,_,_,_,df_train = read_CSV()
+    data_exploration(df_attributes, df_train)
+    #original_script()
     
 
 if __name__ == "__main__":
