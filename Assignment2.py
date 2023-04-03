@@ -163,9 +163,9 @@ def original_script():
 
 
 def main():
-    df_attributes,_,_,_,df_train = read_CSV()
-    data_exploration(df_attributes, df_train)
-    #original_script()
+    # df_attributes,_,_,_,df_train = read_CSV()
+    # data_exploration(df_attributes, df_train)
+    original_script()
     
 
 if __name__ == "__main__":
