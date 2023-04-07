@@ -2,22 +2,28 @@ import pandas as pd
 import numpy as np
 import chardet
 import matplotlib.pyplot as plt
+import joblib
+
 from sklearn.ensemble import RandomForestRegressor, BaggingRegressor
 from nltk.stem.snowball import SnowballStemmer
-
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn import svm
+from sklearn.neural_network import MLPRegressor
 
 def read_CSV():
-    data_path = "home-depot-product-search-relevance/"
+    data_path = "Data/"
    
     df_attributes = pd.read_csv(data_path + "attributes.csv")
     df_product_descriptions = pd.read_csv(data_path + "product_descriptions.csv")
     df_sample_submission = pd.read_csv(data_path + "sample_submission.csv")
     
-    with open(data_path + "test.csv", 'rb') as f:
+    with open(data_path + "test.csv", "rb") as f:
         enc = chardet.detect(f.read()) 
     
-    df_test = pd.read_csv(data_path + "test.csv", encoding = enc['encoding'])
-    df_train = pd.read_csv(data_path + "train.csv", encoding = enc['encoding'])
+    df_test = pd.read_csv(data_path + "test.csv", encoding = enc["encoding"])
+    df_train = pd.read_csv(data_path + "train.csv", encoding = enc["encoding"])
     
     return df_attributes, df_product_descriptions, df_sample_submission, df_test, df_train
 
@@ -28,12 +34,12 @@ def data_exploration(df_attributes, df_train):
     print("-----------------------------------------------------------------------------------------")
     
     #2. What is the number of unique products in the training data?
-    print("#2 The number of unique products in the training data:", df_train['product_title'].nunique())
+    print("#2 The number of unique products in the training data:", df_train["product_title"].nunique())
     print("-----------------------------------------------------------------------------------------")
     
     #3. What are the two most occurring products in the training data and how often do they occur?
-    df_count = (df_train['product_title'].value_counts().to_frame()).reset_index()
-    df_count.rename(columns = {'index': 'product_title', 'product_title': 'count'}, inplace = True)
+    df_count = (df_train["product_title"].value_counts().to_frame()).reset_index()
+    df_count.rename(columns = {"index": "product_title", "product_title": "count"}, inplace = True)
     print("#3 The two most occurring products in the training data are:")
     print(df_count.iloc[0][0], ":", df_count.iloc[0][1], " occurrences")
     print(df_count.iloc[1][0], ":", df_count.iloc[1][1], " occurrences")
@@ -44,26 +50,26 @@ def data_exploration(df_attributes, df_train):
     
     #4. Give the descriptive statistics for the relevance values (mean, median, standard deviation) in the training data.
     print("The descriptive statistics for the relevance values (mean, median, standard deviation) in the training data:")
-    print("Mean:", df_train['relevance'].mean())
-    print("Median:", df_train['relevance'].median())
-    print("Standard deviation:", df_train['relevance'].std())
+    print("Mean:", df_train["relevance"].mean())
+    print("Median:", df_train["relevance"].median())
+    print("Standard deviation:", df_train["relevance"].std())
     print("-----------------------------------------------------------------------------------------")
 
     #5. Show a histogram or boxplot of the distribution of relevance values in the training data.
-    df_train.hist(column = 'relevance', color = 'blue')
-    plt.xlabel('Relevance score')
-    plt.ylabel('Frequency')
-    plt.title('Histogram of the distribution of relevance values in the training data')
+    df_train.hist(column = "relevance", color = "blue")
+    plt.xlabel("Relevance score")
+    plt.ylabel("Frequency")
+    plt.title("Histogram of the distribution of relevance values in the training data")
     plt.show()
     
     # Maybe add a density plot
-    df_train.boxplot(column = 'relevance', color = 'blue')
-    plt.title('Boxplot of the distribution of relevance values in the training data')
+    df_train.boxplot(column = "relevance", color = "blue")
+    plt.title("Boxplot of the distribution of relevance values in the training data")
     plt.show()
     
     #6. What are the top-5 most occurring brand names in the product attributes?
-    df_names_count = (df_attributes['name'].value_counts().to_frame()).reset_index()
-    df_names_count.rename(columns = {'index': 'name', 'name': 'count'}, inplace = True)
+    df_names_count = (df_attributes["name"].value_counts().to_frame()).reset_index()
+    df_names_count.rename(columns = {"index": "name", "name": "count"}, inplace = True)
     print("#6 The top-5 most occurring brand names in the product attributes:")
     print(df_names_count.iloc[0][0], ":", df_names_count.iloc[0][1], " occurrences")
     print(df_names_count.iloc[1][0], ":", df_names_count.iloc[1][1], " occurrences")
@@ -78,7 +84,7 @@ def data_exploration(df_attributes, df_train):
 # Stemming maps different forms of the same word to a common “stem” - for example, 
 # the English stemmer maps connection, connections, connective, connected, and connecting to connect. 
 # So a searching for connected would also find documents which also have the other forms.
-stemmer = SnowballStemmer('english')
+stemmer = SnowballStemmer("english")
 # For a provided string, returns a new string with the words replaced by their roots in English, e.g.
 # programmer -> program 
 def str_stemmer(s):
@@ -89,34 +95,34 @@ def str_common_word(str1, str2):
 
 def original_script():
     # Reading the data
-    df_train = pd.read_csv('home-depot-product-search-relevance/train.csv', encoding="ISO-8859-1")
-    df_test = pd.read_csv('home-depot-product-search-relevance/test.csv', encoding="ISO-8859-1")
-    # df_attr = pd.read_csv('../input/attributes.csv')
-    df_pro_desc = pd.read_csv('home-depot-product-search-relevance/product_descriptions.csv')
+    df_train = pd.read_csv("Data/train.csv", encoding="ISO-8859-1")
+    df_test = pd.read_csv("Data/test.csv", encoding="ISO-8859-1")
+    # df_attr = pd.read_csv("../input/attributes.csv")
+    df_pro_desc = pd.read_csv("Data/product_descriptions.csv")
 
     num_train = df_train.shape[0]
 
     # Data preprocessing
     # Concatenating train.csv, test.csv and product_descriptions.csv files
     df_all = pd.concat((df_train, df_test), axis=0, ignore_index=True)
-    df_all = pd.merge(df_all, df_pro_desc, how='left', on='product_uid')
+    df_all = pd.merge(df_all, df_pro_desc, how="left", on="product_uid")
     
     # Stemming the search_term values
-    df_all['search_term'] = df_all['search_term'].map(lambda x:str_stemmer(x))
+    df_all["search_term"] = df_all["search_term"].map(lambda x:str_stemmer(x))
     # Stemming the product_title values
-    df_all['product_title'] = df_all['product_title'].map(lambda x:str_stemmer(x))
+    df_all["product_title"] = df_all["product_title"].map(lambda x:str_stemmer(x))
     # Stemming the product_description values
-    df_all['product_description'] = df_all['product_description'].map(lambda x:str_stemmer(x))
+    df_all["product_description"] = df_all["product_description"].map(lambda x:str_stemmer(x))
     # Adding a new column len_of_query, which contains the number of words in search_term
-    df_all['len_of_query'] = df_all['search_term'].map(lambda x:len(x.split())).astype(np.int64)
+    df_all["len_of_query"] = df_all["search_term"].map(lambda x:len(x.split())).astype(np.int64)
     # Adding a new column product_info which contrains search_term + product_title + product_description
-    df_all['product_info'] = df_all['search_term']+"\t"+df_all['product_title']+"\t"+df_all['product_description']
+    df_all["product_info"] = df_all["search_term"]+"\t"+df_all["product_title"]+"\t"+df_all["product_description"]
     # Adding a new column word_in_title which contains the number of matching (same) words in search_term and product_title
-    df_all['word_in_title'] = df_all['product_info'].map(lambda x:str_common_word(x.split('\t')[0],x.split('\t')[1]))
+    df_all["word_in_title"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[1]))
     # Adding a new column word_in_description which contains the number of matching (same) words in search_term and product_description
-    df_all['word_in_description'] = df_all['product_info'].map(lambda x:str_common_word(x.split('\t')[0],x.split('\t')[2]))
+    df_all["word_in_description"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[2]))
     # Droping the following columns: search_term, product_title, product_description and product_info
-    df_all = df_all.drop(['search_term','product_title','product_description','product_info'],axis=1)
+    df_all = df_all.drop(["search_term","product_title","product_description","product_info"],axis=1)
     # df_all contains the following columns: 
     # id - unique Id field which represents a (search_term, product_uid) pair
     # product_uid - an id for the products
@@ -130,13 +136,13 @@ def original_script():
     # df_test contains the test instances
     df_test = df_all.iloc[num_train:]
     # id_test contrains a unique Id field which represents a (search_term, product_uid) pair
-    id_test = df_test['id']
+    id_test = df_test["id"]
 
     # y_train or labels are the relevance scores
-    y_train = df_train['relevance'].values
+    y_train = df_train["relevance"].values
     # X_train and X_test contain product_uid, len_of_query, word_in_title and word_in_description
-    X_train = df_train.drop(['id','relevance'],axis=1).values
-    X_test = df_test.drop(['id','relevance'],axis=1).values
+    X_train = df_train.drop(["id","relevance"],axis=1).values
+    X_test = df_test.drop(["id","relevance"],axis=1).values
 
     # A random forest is a meta estimator that fits a number of classifying decision trees on various sub-samples 
     # of the dataset and uses averaging to improve the predictive accuracy and control over-fitting
@@ -151,22 +157,260 @@ def original_script():
     clf = BaggingRegressor(rf, n_estimators=45, max_samples=0.1, random_state=25)
     # Build a Bagging ensemble of estimators from the training set (X_train, y_train).
     clf.fit(X_train, y_train)
+    
     # Predict regression target for X_test.
     y_pred = clf.predict(X_test)
 
-    #Safe the id's and relevance scores into a CSV file.
-    pd.DataFrame({"id": id_test, "relevance": y_pred}).to_csv('submission.csv',index=False)
+    #Safe the id"s and relevance scores into a CSV file.
+    pd.DataFrame({"id": id_test, "relevance": y_pred}).to_csv("Data/submission.csv",index=False)
 
 ##################### The code by Yao-Jen Chang #####################
 
+def week6_baseline():
+    # results in 0.48
+    # Reading the data
+    df_train = pd.read_csv("Data/train.csv", encoding="ISO-8859-1")
+    df_test = pd.read_csv("Data/test.csv", encoding="ISO-8859-1")
+    # df_attr = pd.read_csv("../input/attributes.csv")
+    df_pro_desc = pd.read_csv("Data/product_descriptions.csv")
+
+    num_train = df_train.shape[0]
+
+    # Data preprocessing
+    # Concatenating train.csv, test.csv and product_descriptions.csv files
+    df_all = pd.concat((df_train, df_test), axis=0, ignore_index=True)
+    df_all = pd.merge(df_all, df_pro_desc, how="left", on="product_uid")
+    
+    # Stemming the search_term values
+    df_all["search_term"] = df_all["search_term"].map(lambda x:str_stemmer(x))
+    # Stemming the product_title values
+    df_all["product_title"] = df_all["product_title"].map(lambda x:str_stemmer(x))
+    # Stemming the product_description values
+    df_all["product_description"] = df_all["product_description"].map(lambda x:str_stemmer(x))
+    # Adding a new column len_of_query, which contains the number of words in search_term
+    df_all["len_of_query"] = df_all["search_term"].map(lambda x:len(x.split())).astype(np.int64)
+    # Adding a new column product_info which contrains search_term + product_title + product_description
+    df_all["product_info"] = df_all["search_term"]+"\t"+df_all["product_title"]+"\t"+df_all["product_description"]
+    # Adding a new column word_in_title which contains the number of matching (same) words in search_term and product_title
+    df_all["word_in_title"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[1]))
+    # Adding a new column word_in_description which contains the number of matching (same) words in search_term and product_description
+    df_all["word_in_description"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[2]))
+    # Droping the following columns: search_term, product_title, product_description and product_info
+    df_all = df_all.drop(["search_term","product_title","product_description","product_info"],axis=1)
+
+    df_train = df_all.iloc[:num_train]
+
+    # X_train and X_test contain product_uid, len_of_query, word_in_title and word_in_description
+    X = df_train.drop(["id","relevance"],axis=1).values
+    # y_train or labels are the relevance scores
+    y = df_train["relevance"].values
+    np.save("Data/X_train.npy", X)
+    np.save("Data/y_train.npy", y)
+    return X, y
+
+def week6_no_stemming():
+    # results in 0.51
+    # Reading the data
+    df_train = pd.read_csv("Data/train.csv", encoding="ISO-8859-1")
+    df_test = pd.read_csv("Data/test.csv", encoding="ISO-8859-1")
+    # df_attr = pd.read_csv("../input/attributes.csv")
+    df_pro_desc = pd.read_csv("Data/product_descriptions.csv")
+
+    num_train = df_train.shape[0]
+
+    # Data preprocessing
+    # Concatenating train.csv, test.csv and product_descriptions.csv files
+    df_all = pd.concat((df_train, df_test), axis=0, ignore_index=True)
+    df_all = pd.merge(df_all, df_pro_desc, how="left", on="product_uid")
+    
+    # Adding a new column len_of_query, which contains the number of words in search_term
+    df_all["len_of_query"] = df_all["search_term"].map(lambda x:len(x.split())).astype(np.int64)
+    # Adding a new column product_info which contrains search_term + product_title + product_description
+    df_all["product_info"] = df_all["search_term"]+"\t"+df_all["product_title"]+"\t"+df_all["product_description"]
+    # Adding a new column word_in_title which contains the number of matching (same) words in search_term and product_title
+    df_all["word_in_title"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[1]))
+    # Adding a new column word_in_description which contains the number of matching (same) words in search_term and product_description
+    df_all["word_in_description"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[2]))
+    # Droping the following columns: search_term, product_title, product_description and product_info
+    df_all = df_all.drop(["search_term","product_title","product_description","product_info"],axis=1)
+
+    df_train = df_all.iloc[:num_train]
+
+    # X_train and X_test contain product_uid, len_of_query, word_in_title and word_in_description
+    X = df_train.drop(["id","relevance"],axis=1).values
+    # y_train or labels are the relevance scores
+    y = df_train["relevance"].values
+
+    return X, y
+
+def week6_attributes_features():
+    # Reading the data
+    df_train = pd.read_csv("Data/train.csv", encoding="ISO-8859-1")
+    df_test = pd.read_csv("Data/test.csv", encoding="ISO-8859-1")
+    df_attr = pd.read_csv("Data/attributes.csv")
+    df_pro_desc = pd.read_csv("Data/product_descriptions.csv")
+
+    num_train = df_train.shape[0]
 
 
+    df_attr = df_attr.dropna()
+    df_attr["attributes"] = df_attr["name"] + " " + df_attr["value"]
+    df_attr = df_attr.drop(["name", "value"], axis=1)
+    df_attr = df_attr.groupby("product_uid").agg(lambda x:" ".join(set(x))).reset_index()
+    df_attr["attributes"] = df_attr["attributes"].map(lambda x:str_stemmer(x))
+    
+    
+    # Data preprocessing
+    # Concatenating train.csv, test.csv and product_descriptions.csv files
+    df_all = pd.concat((df_train, df_test), axis=0, ignore_index=True)
+    df_all = pd.merge(df_all, df_pro_desc, how="left", on="product_uid")
+    
+    
+    df_all = pd.merge(df_all, df_attr, how="left", on="product_uid")
+    df_all["attributes"] = df_all["attributes"].fillna("")
+    
+    
+    # Stemming the search_term values
+    df_all["search_term"] = df_all["search_term"].map(lambda x:str_stemmer(x))
+    # Stemming the product_title values
+    df_all["product_title"] = df_all["product_title"].map(lambda x:str_stemmer(x))
+    # Stemming the product_description values
+    df_all["product_description"] = df_all["product_description"].map(lambda x:str_stemmer(x))
+    # Adding a new column len_of_query, which contains the number of words in search_term
+    df_all["len_of_query"] = df_all["search_term"].map(lambda x:len(x.split())).astype(np.int64)
+    # Adding a new column product_info which contrains search_term + product_title + product_description + attributes
+    df_all["product_info"] = df_all["search_term"]+"\t"+df_all["product_title"]+"\t"+df_all["product_description"]+"\t"+df_all["attributes"]
+    df_all.to_csv("Data/df_all.csv", index=False)
+    # Adding a new column word_in_title which contains the number of matching (same) words in search_term and product_title
+    df_all["word_in_title"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[1]))
+    # Adding a new column word_in_description which contains the number of matching (same) words in search_term and product_description
+    df_all["word_in_description"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[2]))
+    
+    # Adding a new column word_in_attributes which contains the number of matching (same) words in search_term and attributes
+    df_all["word_in_attributes"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[3]))
+    
+    # Droping the following columns: search_term, product_title, product_description and product_info
+    df_all = df_all.drop(["search_term","product_title","product_description", "attributes", "product_info"],axis=1)
 
+    df_train = df_all.iloc[:num_train]
+
+    X = df_train.drop(["id","relevance"],axis=1).values
+    # y_train or labels are the relevance scores
+    y = df_train["relevance"].values
+
+    return X, y
+def weighted_matches(str1, str2, row_index, dictionary, tfidf_score):
+	return sum(int(str2.find(word)>=0)*tfidf_score[row_index, dictionary[word]] for word in str1.split() if word in dictionary)
+
+def week6_tfidf_vectorizer():
+    # Reading the data
+    df_train = pd.read_csv("Data/train.csv", encoding="ISO-8859-1")
+    df_test = pd.read_csv("Data/test.csv", encoding="ISO-8859-1")
+    # df_attr = pd.read_csv("../input/attributes.csv")
+    df_pro_desc = pd.read_csv("Data/product_descriptions.csv")
+
+    num_train = df_train.shape[0]
+
+    # Data preprocessing
+    # Concatenating train.csv, test.csv and product_descriptions.csv files
+    df_all = pd.concat((df_train, df_test), axis=0, ignore_index=True)
+    df_all = pd.merge(df_all, df_pro_desc, how="left", on="product_uid")
+    
+    # Stemming the search_term values
+    df_all["search_term"] = df_all["search_term"].map(lambda x:str_stemmer(x))
+    # Stemming the product_title values
+    df_all["product_title"] = df_all["product_title"].map(lambda x:str_stemmer(x))
+    # Stemming the product_description values
+    df_all["product_description"] = df_all["product_description"].map(lambda x:str_stemmer(x))
+    # Adding a new column len_of_query, which contains the number of words in search_term
+    df_all["len_of_query"] = df_all["search_term"].map(lambda x:len(x.split())).astype(np.int64)
+    # Adding a new column product_info which contrains search_term + product_title + product_description
+    df_all["product_info"] = df_all["search_term"]+"\t"+df_all["product_title"]+"\t"+df_all["product_description"]
+
+    df_all=df_all.reset_index()
+    vectorizer = TfidfVectorizer()
+    X = vectorizer.fit_transform(df_all["product_info"])
+    df_all["custom"] = df_all.apply(lambda x:weighted_matches(x["product_info"].split("\t")[0], x["product_info"].split("\t")[2], 
+                                                      x["index"], vectorizer.vocabulary_, X), axis=1)
+    
+    # Adding a new column word_in_title which contains the number of matching (same) words in search_term and product_title
+    df_all["word_in_title"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[1]))
+    # Adding a new column word_in_description which contains the number of matching (same) words in search_term and product_description
+    df_all["word_in_description"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[2]))
+    # Droping the following columns: search_term, product_title, product_description and product_info
+    df_all = df_all.drop(["search_term","product_title","product_description","product_info"],axis=1)
+
+    df_train = df_all.iloc[:num_train]
+
+    # X_train and X_test contain product_uid, len_of_query, word_in_title and word_in_description
+    X = df_train.drop(["id","relevance"],axis=1).values
+    # y_train or labels are the relevance scores
+    y = df_train["relevance"].values
+
+    return X, y
+
+def test_bagging_random_forest(X, y):
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Create the random forest model
+    rf = RandomForestRegressor(n_estimators=15, max_depth=6, random_state=0)
+    clf = BaggingRegressor(rf, n_estimators=45, max_samples=0.1, random_state=25)
+    
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    
+    rmse = mean_squared_error(y_test, y_pred, squared=False)
+    
+    print("MSE: %.4f" % rmse)
+    return rmse
+
+def test_support_vector_machines(X, y):
+    # MSE: 0.5316 with baseline features
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    regr = svm.SVR()
+    regr.fit(X_train, y_train)
+    y_pred = regr.predict(X_test)
+
+    rmse = mean_squared_error(y_test, y_pred, squared=False)
+    
+    print("MSE: %.4f" % rmse)
+    return rmse
+
+def test_multi_layer_perceptron(X, y):
+    # MSE: 0.7877 with baseline features
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    mlp = MLPRegressor()
+    mlp.fit(X_train,y_train)
+    
+    y_pred = mlp.predict(X_test)
+    
+    rmse = mean_squared_error(y_test, y_pred, squared=False)
+    
+    print("MSE: %.4f" % rmse)
+    return rmse
+    
+    
 def main():
     # df_attributes,_,_,_,df_train = read_CSV()
     # data_exploration(df_attributes, df_train)
-    original_script()
+    # original_script()
+    X, y = week6_baseline()
+    # X, y = week6_no_stemming()
+    # X, y = week6_attributes_features()
+    # X, y = week6_tfidf_vectorizer()
+    # 
+    # test_bagging_random_forest(X, y)
+    test_support_vector_machines(X, y)
+    test_multi_layer_perceptron(X, y)
     
 
 if __name__ == "__main__":
     main()
+
+
+    
+
