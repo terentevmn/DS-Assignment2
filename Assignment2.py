@@ -399,10 +399,11 @@ def test_k_nearest_neighbors(X, y):
     # MSE: 0.5248 with baseline features
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    mor = KNeighborsRegressor(n_neighbors=500)
-    mor.fit(X_train, y_train)
+    knr = KNeighborsRegressor(n_neighbors=1000,weights='uniform',  p=1, metric='manhattan')
     
-    y_pred = mor.predict(X_test)
+    knr.fit(X_train, y_train)
+    
+    y_pred = knr.predict(X_test)
         
     rmse = mean_squared_error(y_test, y_pred, squared=False)
     
@@ -419,7 +420,8 @@ def test_hyperparameters_k_nearest_neighbors(X, y):
     mor = KNeighborsRegressor()
     clf = GridSearchCV(mor, params, cv=5, scoring='neg_mean_squared_error')
     clf.fit(X_train, y_train)
-    print(sorted(clf.cv_results_.keys()))
+    print(clf.best_params_) 
+    # print(sorted(clf.cv_results_.keys()))
     
 def main():
     # df_attributes,_,_,_,df_train = read_CSV()
@@ -436,8 +438,9 @@ def main():
     # test_bagging_random_forest(X, y)
     # test_support_vector_machines(X, y)
     # test_multi_layer_perceptron(X, y)
-    # test_k_nearest_neighbors(X, y)
-    test_hyperparameters_k_nearest_neighbors(X, y)
+    test_k_nearest_neighbors(X, y)
+    # test_hyperparameters_k_nearest_neighbors(X, y)
+    
     
 
 if __name__ == "__main__":
