@@ -11,6 +11,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import svm
 from sklearn.neural_network import MLPRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.model_selection import GridSearchCV
 
 def read_CSV():
     data_path = "Data/"
@@ -392,20 +394,50 @@ def test_multi_layer_perceptron(X, y):
     
     print("MSE: %.4f" % rmse)
     return rmse
+
+def test_k_nearest_neighbors(X, y):
+    # MSE: 0.5248 with baseline features
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
+    mor = KNeighborsRegressor(n_neighbors=500)
+    mor.fit(X_train, y_train)
+    
+    y_pred = mor.predict(X_test)
+        
+    rmse = mean_squared_error(y_test, y_pred, squared=False)
+    
+    print("MSE: %.4f" % rmse)
+    return rmse
+
+def test_hyperparameters_k_nearest_neighbors(X, y):
+    params = {'metric': ['euclidean', 'manhattan', 'chebyshev', 'minkowski'], 
+              'n_neighbors': [5, 10, 20, 50, 100, 250, 500, 1000], 
+              'p': [1, 2, 4, 8], 
+              'weights': ['uniform', 'distance']}
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    mor = KNeighborsRegressor()
+    clf = GridSearchCV(mor, params, cv=5, scoring='neg_mean_squared_error')
+    clf.fit(X_train, y_train)
+    print(sorted(clf.cv_results_.keys()))
     
 def main():
     # df_attributes,_,_,_,df_train = read_CSV()
     # data_exploration(df_attributes, df_train)
     # original_script()
-    X, y = week6_baseline()
+    # load baseline 
+    X = np.load("Data/X_train.npy")
+    y = np.load("Data/y_train.npy")
+    # X, y = week6_baseline()
     # X, y = week6_no_stemming()
     # X, y = week6_attributes_features()
     # X, y = week6_tfidf_vectorizer()
     # 
     # test_bagging_random_forest(X, y)
-    test_support_vector_machines(X, y)
-    test_multi_layer_perceptron(X, y)
+    # test_support_vector_machines(X, y)
+    # test_multi_layer_perceptron(X, y)
+    # test_k_nearest_neighbors(X, y)
+    test_hyperparameters_k_nearest_neighbors(X, y)
     
 
 if __name__ == "__main__":
