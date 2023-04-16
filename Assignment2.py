@@ -309,6 +309,7 @@ def week6_attributes_features():
     y = df_train["relevance"].values
 
     return X, y
+
 def weighted_matches(str1, str2, row_index, dictionary, tfidf_score):
 	return sum(int(str2.find(word)>=0)*tfidf_score[row_index, dictionary[word]] for word in str1.split() if word in dictionary)
 
@@ -439,17 +440,17 @@ def main():
     # data_exploration(df_attributes, df_train)
     # original_script()
     # load baseline 
-    # X = np.load("Data/X_train.npy")
-    # y = np.load("Data/y_train.npy")
+    X = np.load("Data/X_train.npy")
+    y = np.load("Data/y_train.npy")
     # X, y = week6_baseline()
-    X, y = week6_no_stemming()
+    # X, y = week6_no_stemming()
     # X, y = week6_attributes_features()
     # X, y = week6_tfidf_vectorizer()
     start = time.time()
-    test_bagging_random_forest(X, y)
+    # test_bagging_random_forest(X, y)
     # test_support_vector_machines(X, y)
     # test_multi_layer_perceptron(X, y)
-    # test_k_nearest_neighbors(X, y)
+    test_k_nearest_neighbors(X, y)
     # test_hyperparameters_k_nearest_neighbors(X, y)
     print("Time: ", round(time.time() - start, 4))
     
