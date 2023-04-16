@@ -59,15 +59,15 @@ def data_exploration(df_attributes, df_train):
     print("-----------------------------------------------------------------------------------------")
 
     #5. Show a histogram or boxplot of the distribution of relevance values in the training data.
-    df_train.hist(column = "relevance", color = "blue")
+    df_train.hist(column = "relevance", color = "blue", grid = False, bins = 20)
     plt.xlabel("Relevance score")
     plt.ylabel("Frequency")
-    plt.title("Histogram of the distribution of relevance values in the training data")
+    #plt.title("Histogram of the distribution of relevance values in the training data")
     plt.show()
     
     # Maybe add a density plot
-    df_train.boxplot(column = "relevance", color = "blue")
-    plt.title("Boxplot of the distribution of relevance values in the training data")
+    df_train.boxplot(column = "relevance", color = "blue", grid = False)
+    #plt.title("Boxplot of the distribution of relevance values in the training data")
     plt.show()
     
     #6. What are the top-5 most occurring brand names in the product attributes?
@@ -147,6 +147,7 @@ def original_script():
     X_train = df_train.drop(["id","relevance"],axis=1).values
     X_test = df_test.drop(["id","relevance"],axis=1).values
 
+    # Creating a classifier 
     # A random forest is a meta estimator that fits a number of classifying decision trees on various sub-samples 
     # of the dataset and uses averaging to improve the predictive accuracy and control over-fitting
     # n_estimators — the number of decision trees we will be running in the model
@@ -435,13 +436,37 @@ def test_hyperparameters_k_nearest_neighbors(X, y):
     print(clf.best_params_) 
     # print(sorted(clf.cv_results_.keys()))
     
+    
+def week_8():
+    # A list of the top-5 most important features, and an interpretation of why they are the most important, 
+    # is part of the report of assignment 2.
+    X, y = week6_baseline()
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Create the random forest model
+    rf = RandomForestRegressor(n_estimators=15, max_depth=6, random_state=0)
+    #clf = BaggingRegressor(rf, n_estimators=45, max_samples=0.1, random_state=25)
+    
+    rf.fit(X_train, y_train)
+    y_pred = rf.predict(X_test)
+    
+    print(rf.feature_importances_)
+    #rmse = mean_squared_error(y_test, y_pred, squared=False)
+    
+    #print("MSE: %.4f" % rmse)
+    #return rmse
+
+
+
+
 def main():
-    # df_attributes,_,_,_,df_train = read_CSV()
-    # data_exploration(df_attributes, df_train)
+    #df_attributes,_,_,_,df_train = read_CSV()
+    #data_exploration(df_attributes, df_train)
     # original_script()
     # load baseline 
-    X = np.load("Data/X_train.npy")
-    y = np.load("Data/y_train.npy")
+    #X = np.load("Data/X_train.npy")
+    #y = np.load("Data/y_train.npy")
     # X, y = week6_baseline()
     # X, y = week6_no_stemming()
     # X, y = week6_attributes_features()
@@ -450,9 +475,11 @@ def main():
     # test_bagging_random_forest(X, y)
     # test_support_vector_machines(X, y)
     # test_multi_layer_perceptron(X, y)
-    test_k_nearest_neighbors(X, y)
+    #test_k_nearest_neighbors(X, y)
     # test_hyperparameters_k_nearest_neighbors(X, y)
     print("Time: ", round(time.time() - start, 4))
+    week_8()
+    
     
 
 if __name__ == "__main__":
@@ -460,4 +487,3 @@ if __name__ == "__main__":
 
 
     
-
