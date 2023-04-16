@@ -3,6 +3,7 @@ import numpy as np
 import chardet
 import matplotlib.pyplot as plt
 import joblib
+import time
 
 from sklearn.ensemble import RandomForestRegressor, BaggingRegressor
 from nltk.stem.snowball import SnowballStemmer
@@ -225,6 +226,13 @@ def week6_no_stemming():
     df_all = pd.concat((df_train, df_test), axis=0, ignore_index=True)
     df_all = pd.merge(df_all, df_pro_desc, how="left", on="product_uid")
     
+    # # Stemming the search_term values
+    # df_all["search_term"] = df_all["search_term"].map(lambda x:str_stemmer(x))
+    # # Stemming the product_title values
+    # df_all["product_title"] = df_all["product_title"].map(lambda x:str_stemmer(x))
+    # # Stemming the product_description values
+    # df_all["product_description"] = df_all["product_description"].map(lambda x:str_stemmer(x))
+    
     # Adding a new column len_of_query, which contains the number of words in search_term
     df_all["len_of_query"] = df_all["search_term"].map(lambda x:len(x.split())).astype(np.int64)
     # Adding a new column product_info which contrains search_term + product_title + product_description
@@ -373,6 +381,7 @@ def test_support_vector_machines(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
     regr = svm.SVR()
+    # regr = BaggingRegressor(regr)
     regr.fit(X_train, y_train)
     y_pred = regr.predict(X_test)
 
@@ -386,6 +395,7 @@ def test_multi_layer_perceptron(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
     mlp = MLPRegressor()
+    # mlp = BaggingRegressor(mlp)
     mlp.fit(X_train,y_train)
     
     y_pred = mlp.predict(X_test)
@@ -399,8 +409,9 @@ def test_k_nearest_neighbors(X, y):
     # MSE: 0.5248 with baseline features
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    knr = KNeighborsRegressor(n_neighbors=1000,weights='uniform',  p=1, metric='manhattan')
-    
+    # knr = KNeighborsRegressor(n_neighbors=1000,weights='uniform',  p=1, metric='manhattan')
+    knr = KNeighborsRegressor(n_neighbors=50)
+    # knr = BaggingRegressor(knr)
     knr.fit(X_train, y_train)
     
     y_pred = knr.predict(X_test)
@@ -428,19 +439,19 @@ def main():
     # data_exploration(df_attributes, df_train)
     # original_script()
     # load baseline 
-    X = np.load("Data/X_train.npy")
-    y = np.load("Data/y_train.npy")
+    # X = np.load("Data/X_train.npy")
+    # y = np.load("Data/y_train.npy")
     # X, y = week6_baseline()
-    # X, y = week6_no_stemming()
+    X, y = week6_no_stemming()
     # X, y = week6_attributes_features()
     # X, y = week6_tfidf_vectorizer()
-    # 
-    # test_bagging_random_forest(X, y)
+    start = time.time()
+    test_bagging_random_forest(X, y)
     # test_support_vector_machines(X, y)
     # test_multi_layer_perceptron(X, y)
-    test_k_nearest_neighbors(X, y)
+    # test_k_nearest_neighbors(X, y)
     # test_hyperparameters_k_nearest_neighbors(X, y)
-    
+    print("Time: ", round(time.time() - start, 4))
     
 
 if __name__ == "__main__":
