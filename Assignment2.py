@@ -291,7 +291,7 @@ def week6_attributes_features():
     df_all["len_of_query"] = df_all["search_term"].map(lambda x:len(x.split())).astype(np.int64)
     # Adding a new column product_info which contrains search_term + product_title + product_description + attributes
     df_all["product_info"] = df_all["search_term"]+"\t"+df_all["product_title"]+"\t"+df_all["product_description"]+"\t"+df_all["attributes"]
-    df_all.to_csv("Data/df_all.csv", index=False)
+    # df_all.to_csv("Data/df_all.csv", index=False)
     # Adding a new column word_in_title which contains the number of matching (same) words in search_term and product_title
     df_all["word_in_title"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[1]))
     # Adding a new column word_in_description which contains the number of matching (same) words in search_term and product_description
@@ -342,8 +342,12 @@ def week6_tfidf_vectorizer():
     df_all=df_all.reset_index()
     vectorizer = TfidfVectorizer()
     X = vectorizer.fit_transform(df_all["product_info"])
-    df_all["custom"] = df_all.apply(lambda x:weighted_matches(x["product_info"].split("\t")[0], x["product_info"].split("\t")[2], 
-                                                      x["index"], vectorizer.vocabulary_, X), axis=1)
+    
+    # SELECT THE FEATURES YOU WANT TO USE
+    # df_all["weighted_title"] = df_all.apply(lambda x:weighted_matches(x["product_info"].split("\t")[0], x["product_info"].split("\t")[1], 
+    #                                                   x["index"], vectorizer.vocabulary_, X), axis=1)
+    # df_all["weighted_description"] = df_all.apply(lambda x:weighted_matches(x["product_info"].split("\t")[0], x["product_info"].split("\t")[2], 
+    #                                                   x["index"], vectorizer.vocabulary_, X), axis=1)
     
     # Adding a new column word_in_title which contains the number of matching (same) words in search_term and product_title
     df_all["word_in_title"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[1]))
@@ -351,6 +355,69 @@ def week6_tfidf_vectorizer():
     df_all["word_in_description"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[2]))
     # Droping the following columns: search_term, product_title, product_description and product_info
     df_all = df_all.drop(["search_term","product_title","product_description","product_info"],axis=1)
+
+    df_train = df_all.iloc[:num_train]
+
+    # X_train and X_test contain product_uid, len_of_query, word_in_title and word_in_description
+    X = df_train.drop(["id","relevance"],axis=1).values
+    # y_train or labels are the relevance scores
+    y = df_train["relevance"].values
+
+    return X, y
+
+def all_features_combined():
+    # Reading the data
+    df_train = pd.read_csv("Data/train.csv", encoding="ISO-8859-1")
+    df_test = pd.read_csv("Data/test.csv", encoding="ISO-8859-1")
+    df_attr = pd.read_csv("Data/attributes.csv")
+    df_pro_desc = pd.read_csv("Data/product_descriptions.csv")
+
+    num_train = df_train.shape[0]
+
+
+    df_attr = df_attr.dropna()
+    df_attr["attributes"] = df_attr["name"] + " " + df_attr["value"]
+    df_attr = df_attr.drop(["name", "value"], axis=1)
+    df_attr = df_attr.groupby("product_uid").agg(lambda x:" ".join(set(x))).reset_index()
+    df_attr["attributes"] = df_attr["attributes"].map(lambda x:str_stemmer(x))
+    
+    
+    # Data preprocessing
+    # Concatenating train.csv, test.csv and product_descriptions.csv files
+    df_all = pd.concat((df_train, df_test), axis=0, ignore_index=True)
+    df_all = pd.merge(df_all, df_pro_desc, how="left", on="product_uid")
+    
+    
+    df_all = pd.merge(df_all, df_attr, how="left", on="product_uid")
+    df_all["attributes"] = df_all["attributes"].fillna("")
+    
+    # Stemming the search_term values
+    df_all["search_term"] = df_all["search_term"].map(lambda x:str_stemmer(x))
+    # Stemming the product_title values
+    df_all["product_title"] = df_all["product_title"].map(lambda x:str_stemmer(x))
+    # Stemming the product_description values
+    df_all["product_description"] = df_all["product_description"].map(lambda x:str_stemmer(x))
+    # Adding a new column len_of_query, which contains the number of words in search_term
+    df_all["len_of_query"] = df_all["search_term"].map(lambda x:len(x.split())).astype(np.int64)
+    # Adding a new column product_info which contrains search_term + product_title + product_description + attributes
+    df_all["product_info"] = df_all["search_term"]+"\t"+df_all["product_title"]+"\t"+df_all["product_description"]+"\t"+df_all["attributes"]
+
+    df_all=df_all.reset_index()
+    vectorizer = TfidfVectorizer()
+    X = vectorizer.fit_transform(df_all["product_info"])
+    df_all["weighted_title"] = df_all.apply(lambda x:weighted_matches(x["product_info"].split("\t")[0], x["product_info"].split("\t")[1], 
+                                                      x["index"], vectorizer.vocabulary_, X), axis=1)
+    df_all["weighted_description"] = df_all.apply(lambda x:weighted_matches(x["product_info"].split("\t")[0], x["product_info"].split("\t")[2], 
+                                                      x["index"], vectorizer.vocabulary_, X), axis=1)
+    df_all["weighted_attributes"] = df_all.apply(lambda x:weighted_matches(x["product_info"].split("\t")[0], x["product_info"].split("\t")[3], 
+                                                      x["index"], vectorizer.vocabulary_, X), axis=1)
+    
+    # Adding a new column word_in_title which contains the number of matching (same) words in search_term and product_title
+    df_all["word_in_title"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[1]))
+    # Adding a new column word_in_description which contains the number of matching (same) words in search_term and product_description
+    df_all["word_in_description"] = df_all["product_info"].map(lambda x:str_common_word(x.split("\t")[0],x.split("\t")[2]))
+    # Droping the following columns: search_term, product_title, product_description and product_info
+    df_all = df_all.drop(["search_term","product_title","product_description", "attributes", "product_info"],axis=1)
 
     df_train = df_all.iloc[:num_train]
 
@@ -413,7 +480,6 @@ def test_k_nearest_neighbors(X, y):
     
     # knr = KNeighborsRegressor(n_neighbors=1000,weights='uniform',  p=1, metric='manhattan')
     knr = KNeighborsRegressor(n_neighbors=50)
-    # knr = BaggingRegressor(knr)
     knr.fit(X_train, y_train)
     
     y_pred = knr.predict(X_test)
@@ -435,8 +501,7 @@ def test_hyperparameters_k_nearest_neighbors(X, y):
     clf.fit(X_train, y_train)
     print(clf.best_params_) 
     # print(sorted(clf.cv_results_.keys()))
-    
-    
+        
 def week_8():
     # A list of the top-5 most important features, and an interpretation of why they are the most important, 
     # is part of the report of assignment 2.
@@ -457,31 +522,36 @@ def week_8():
     #print("MSE: %.4f" % rmse)
     #return rmse
 
-
-
-
 def main():
     #df_attributes,_,_,_,df_train = read_CSV()
     #data_exploration(df_attributes, df_train)
     # original_script()
     # load baseline 
-    #X = np.load("Data/X_train.npy")
-    #y = np.load("Data/y_train.npy")
+    
+    # SELECT WHICH FEATURES TO USE
+    # X = np.load("Data/X_train.npy") # load baseline
+    # y = np.load("Data/y_train.npy") # load baseline
     # X, y = week6_baseline()
     # X, y = week6_no_stemming()
     # X, y = week6_attributes_features()
     # X, y = week6_tfidf_vectorizer()
+    X, y = all_features_combined()
+    
+    
     start = time.time()
-    # test_bagging_random_forest(X, y)
+    
+    # SELECT WHICH MODEL TO USE
+    test_bagging_random_forest(X, y)
     # test_support_vector_machines(X, y)
     # test_multi_layer_perceptron(X, y)
-    #test_k_nearest_neighbors(X, y)
+    # test_k_nearest_neighbors(X, y)
     # test_hyperparameters_k_nearest_neighbors(X, y)
     print("Time: ", round(time.time() - start, 4))
-    week_8()
     
     
-
+    # week_8()
+    
+    
 if __name__ == "__main__":
     main()
 
