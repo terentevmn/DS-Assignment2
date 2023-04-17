@@ -266,23 +266,19 @@ def week6_attributes_features():
 
     num_train = df_train.shape[0]
 
-
     df_attr = df_attr.dropna()
     df_attr["attributes"] = df_attr["name"] + " " + df_attr["value"]
     df_attr = df_attr.drop(["name", "value"], axis=1)
     df_attr = df_attr.groupby("product_uid").agg(lambda x:" ".join(set(x))).reset_index()
     df_attr["attributes"] = df_attr["attributes"].map(lambda x:str_stemmer(x))
     
-    
     # Data preprocessing
     # Concatenating train.csv, test.csv and product_descriptions.csv files
     df_all = pd.concat((df_train, df_test), axis=0, ignore_index=True)
     df_all = pd.merge(df_all, df_pro_desc, how="left", on="product_uid")
     
-    
     df_all = pd.merge(df_all, df_attr, how="left", on="product_uid")
     df_all["attributes"] = df_all["attributes"].fillna("")
-    
     
     # Stemming the search_term values
     df_all["search_term"] = df_all["search_term"].map(lambda x:str_stemmer(x))
@@ -377,13 +373,11 @@ def all_features_combined():
 
     num_train = df_train.shape[0]
 
-
     df_attr = df_attr.dropna()
     df_attr["attributes"] = df_attr["name"] + " " + df_attr["value"]
     df_attr = df_attr.drop(["name", "value"], axis=1)
     df_attr = df_attr.groupby("product_uid").agg(lambda x:" ".join(set(x))).reset_index()
     df_attr["attributes"] = df_attr["attributes"].map(lambda x:str_stemmer(x))
-    
     
     # Data preprocessing
     # Concatenating train.csv, test.csv and product_descriptions.csv files
@@ -532,12 +526,13 @@ def week_8():
     #return rmse
 
 def main():
-    df_attributes,_,_,_,df_train = read_CSV()
-    data_exploration(df_attributes, df_train)
-    # Pack alle lijnen met MFG Brand Name en daarna sorten en pakken de value
-    # original_script()
-    # load baseline 
+    ### --------------- Week 5 --------------- ###
+    # df_attributes,_,_,_,df_train = read_CSV()
+    # data_exploration(df_attributes, df_train)
     
+    # original_script()
+    
+    ### --------------- Weeks 6&7 --------------- ###
     # SELECT WHICH FEATURES TO USE
     # X = np.load("Data/X_train.npy") # load baseline
     # y = np.load("Data/y_train.npy") # load baseline
@@ -545,8 +540,6 @@ def main():
     # X, y = week6_no_stemming()
     # X, y = week6_attributes_features()
     # X, y = week6_tfidf_vectorizer()
-    
-    
     
     #start = time.time()
     
@@ -556,10 +549,10 @@ def main():
     # test_multi_layer_perceptron(X, y)
     # test_k_nearest_neighbors(X, y)
     # test_hyperparameters_k_nearest_neighbors(X, y)
-    #print("Time: ", round(time.time() - start, 4))
+    # print("Time: ", round(time.time() - start, 4))
     
-    
-    #week_8()
+    ### --------------- Week 8 --------------- ###
+    # week_8()
     
     
 if __name__ == "__main__":
