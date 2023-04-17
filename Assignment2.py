@@ -63,15 +63,17 @@ def data_exploration(df_attributes, df_train):
     plt.xlabel("Relevance score")
     plt.ylabel("Frequency")
     #plt.title("Histogram of the distribution of relevance values in the training data")
-    plt.show()
+    #plt.show()
     
     # Maybe add a density plot
     df_train.boxplot(column = "relevance", color = "blue", grid = False)
     #plt.title("Boxplot of the distribution of relevance values in the training data")
-    plt.show()
+    #plt.show()
     
     #6. What are the top-5 most occurring brand names in the product attributes?
-    df_names_count = (df_attributes["name"].value_counts().to_frame()).reset_index()
+    df = df_attributes.loc[df_attributes["name"] == 'MFG Brand Name']
+    df_names_count = (df["value"].value_counts().to_frame()).reset_index()
+    print(df_names_count)
     df_names_count.rename(columns = {"index": "name", "name": "count"}, inplace = True)
     print("#6 The top-5 most occurring brand names in the product attributes:")
     print(df_names_count.iloc[0][0], ":", df_names_count.iloc[0][1], " occurrences")
@@ -79,6 +81,7 @@ def data_exploration(df_attributes, df_train):
     print(df_names_count.iloc[2][0], ":", df_names_count.iloc[2][1], " occurrences")
     print(df_names_count.iloc[3][0], ":", df_names_count.iloc[3][1], " occurrences")
     print(df_names_count.iloc[4][0], ":", df_names_count.iloc[4][1], " occurrences")
+    print(df_names_count.iloc[5][0], ":", df_names_count.iloc[5][1], " occurrences")
     print("-----------------------------------------------------------------------------------------")
 
 
@@ -421,12 +424,7 @@ def all_features_combined():
 
     df_train = df_all.iloc[:num_train]
 
-    # X_train and X_test contain product_uid, len_of_query, word_in_title and word_in_description
-    X = df_train.drop(["id","relevance"],axis=1).values
-    # y_train or labels are the relevance scores
-    y = df_train["relevance"].values
-
-    return X, y
+    return df_train
 
 def test_bagging_random_forest(X, y):
     # Split the data into training and testing sets
@@ -505,7 +503,16 @@ def test_hyperparameters_k_nearest_neighbors(X, y):
 def week_8():
     # A list of the top-5 most important features, and an interpretation of why they are the most important, 
     # is part of the report of assignment 2.
-    X, y = week6_baseline()
+    df_train = all_features_combined()
+    # X_train and X_test contain product_uid, len_of_query, word_in_title and word_in_description
+    X = df_train.drop(["id","relevance"],axis=1).values
+    # y_train or labels are the relevance scores
+    y = df_train["relevance"].values
+    
+    # Columns
+    df_train = df_train.drop(["id","relevance"],axis=1)
+    
+    
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
@@ -516,15 +523,18 @@ def week_8():
     rf.fit(X_train, y_train)
     y_pred = rf.predict(X_test)
     
-    print(rf.feature_importances_)
+    res = pd.DataFrame({'feature_importances_': rf.feature_importances_}, index=df_train.columns).sort_values(by='feature_importances_', ascending=False)
+    
+    print(res)
     #rmse = mean_squared_error(y_test, y_pred, squared=False)
     
     #print("MSE: %.4f" % rmse)
     #return rmse
 
 def main():
-    #df_attributes,_,_,_,df_train = read_CSV()
-    #data_exploration(df_attributes, df_train)
+    df_attributes,_,_,_,df_train = read_CSV()
+    data_exploration(df_attributes, df_train)
+    # Pack alle lijnen met MFG Brand Name en daarna sorten en pakken de value
     # original_script()
     # load baseline 
     
@@ -535,21 +545,21 @@ def main():
     # X, y = week6_no_stemming()
     # X, y = week6_attributes_features()
     # X, y = week6_tfidf_vectorizer()
-    X, y = all_features_combined()
     
     
-    start = time.time()
+    
+    #start = time.time()
     
     # SELECT WHICH MODEL TO USE
-    test_bagging_random_forest(X, y)
+    #test_bagging_random_forest(X, y)
     # test_support_vector_machines(X, y)
     # test_multi_layer_perceptron(X, y)
     # test_k_nearest_neighbors(X, y)
     # test_hyperparameters_k_nearest_neighbors(X, y)
-    print("Time: ", round(time.time() - start, 4))
+    #print("Time: ", round(time.time() - start, 4))
     
     
-    # week_8()
+    #week_8()
     
     
 if __name__ == "__main__":
